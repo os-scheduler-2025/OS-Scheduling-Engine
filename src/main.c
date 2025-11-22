@@ -1,25 +1,29 @@
-// src/main.c (Mise à jour pour le Chargement Dynamique)
+// src/main.c (Version finale avec IHM GTK)
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dlfcn.h> // Nécessaire pour dlopen, dlsym, dlclose
+#include <dlfcn.h> 
+#include <gtk/gtk.h> // Ajout de l'inclusion GTK pour la compilation
 
 #include "../includes/process.h"
 #include "../includes/parser.h"
 #include "../includes/simulation.h"
 #include "../includes/utils.h"
 
-// Le prototype de la fonction de politique n'a plus besoin de 'extern'
-// Il est redéfini via le pointeur de fonction 'SchedulerFunc' dans simulation.h
+// Déclaration de la fonction IHM (implémentée dans src/gui.c)
+extern void run_gui_simulation(Process processes[], int num_processes, SchedulerFunc scheduler, int quantum);
 
-// Structure pour gérer les options de politique dans le menu (mise à jour)
+// Structure pour gérer les options de politique dans le menu
 typedef struct {
     char name[50];
     char so_filename[100]; // Nom du fichier .so
 } PolicyOption;
 
 int main(int argc, char *argv[]) {
+    // Il faut appeler gtk_init si on veut afficher des messages d'erreur GTK.
+    // Cependant, dans ce cas, nous appelons run_gui_simulation qui s'en charge.
+
     if (argc != 2) {
         fprintf(stderr, "Utilisation: %s <fichier_configuration>\n", argv[0]);
         return EXIT_FAILURE;
@@ -73,18 +77,16 @@ int main(int argc, char *argv[]) {
     }
 
     // --- CHARGEMENT DYNAMIQUE ---
-    void *handle = dlopen(selected_policy.so_filename, RTLD_LAZY);
+    void *handle = dlopen(selected_policy.so_filename, RTLD_LAZY | RTLD_GLOBAL); // Utiliser RTLD_GLOBAL pour la stabilité GTK
     if (!handle) {
         fprintf(stderr, "Erreur de dlopen pour %s: %s\n", selected_policy.so_filename, dlerror());
         return EXIT_FAILURE;
     }
 
-    // Le nom de la fonction est construit (e.g., "schedule_fifo" -> "schedule_fifo")
     char func_name[100];
-    // Retirer le préfixe "policies/" et le suffixe ".so" pour obtenir le nom de base
     char base_name[50];
     strcpy(base_name, selected_policy.so_filename + strlen("policies/"));
-    base_name[strlen(base_name) - 3] = '\0'; // Supprimer ".so"
+    base_name[strlen(base_name) - 3] = '\0'; 
     sprintf(func_name, "schedule_%s", base_name);
 
 
@@ -95,14 +97,13 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // --- Exécution ---
-    printf("\nExecution de la simulation avec la politique: %s\n", selected_policy.name);
-    run_simulation(processes, num_processes, scheduler_func, quantum);
-
-    display_results(processes, num_processes);
+    // --- Appel de la SIMULATION GRAPHIQUE ---
+    printf("\nLancement de l'IHM Graphique pour la politique: %s\n", selected_policy.name);
+    run_gui_simulation(processes, num_processes, scheduler_func, quantum);
 
     // --- DÉCHARGEMENT DYNAMIQUE ---
     dlclose(handle);
 
+    // Le programme se termine après gtk_main_quit dans run_gui_simulation
     return EXIT_SUCCESS;
 }

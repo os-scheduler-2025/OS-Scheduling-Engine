@@ -1,26 +1,30 @@
-# Makefile (Version finale avec Chargement Dynamique et -rdynamic)
+# Makefile (Version CORRIGÉE pour l'ordre de liaison GTK)
 
 CC = gcc
-# Ajout de -fPIC pour créer des objets relogeables (nécessaire pour les .so)
-CFLAGS = -Wall -Wextra -g -std=c99 -fPIC
+# Récupération automatique des drapeaux GTK
+GTK_CFLAGS = $(shell pkg-config --cflags gtk+-3.0)
+GTK_LIBS = $(shell pkg-config --libs gtk+-3.0)
+
+# CFLAGS inclut -fPIC, -pthread et les drapeaux GTK
+CFLAGS = -Wall -Wextra -g -std=c99 -fPIC -pthread $(GTK_CFLAGS)
 
 # Flags de lien
-LDFLAGS = 
-# Librairie pour le chargement dynamique (dlopen, dlsym, dlclose)
-DYN_LINK_FLAGS = -ldl
+# Les librairies GTK sont incluses ici.
+LDFLAGS = $(GTK_LIBS) 
+# Librairie pour le chargement dynamique (dlopen) et multithreading (pthread)
+DYN_LINK_FLAGS = -ldl -lpthread
 
 # Répertoires
 SRCDIR = src
 INCLDIR = includes
 POLDIR = policies
 
-# Fichiers sources à compiler (ne contient plus les politiques)
-SRC_FILES = main.c parser.c simulation.c utils.c
+# Fichiers sources à compiler (avec gui.c)
+SRC_FILES = main.c parser.c simulation.c utils.c gui.c
 SRC = $(addprefix $(SRCDIR)/, $(SRC_FILES))
 
 # Fichiers politiques à transformer en .so
 POL_BASE_NAMES = fifo roundrobin priority mlq
-POL_SRC = $(addprefix $(POLDIR)/, $(addsuffix .c, $(POL_BASE_NAMES)))
 POL_SO = $(addprefix $(POLDIR)/, $(addsuffix .so, $(POL_BASE_NAMES)))
 
 # Fichiers objets de la source principale
@@ -32,9 +36,9 @@ EXECUTABLE = ordonnanceur
 all: $(EXECUTABLE) $(POL_SO)
 
 # Règle pour l'exécutable final
-# AJOUT DE -rdynamic ici: Il expose les symboles de l'exécutable aux bibliothèques chargées par dlopen
+# L'ordre est crucial: OBJETS -> -rdynamic -> LDFLAGS (GTK_LIBS) -> DYN_LINK_FLAGS (-ldl -lpthread)
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -rdynamic $^ -o $@ $(DYN_LINK_FLAGS)
+	$(CC) $(CFLAGS) -rdynamic $^ $(LDFLAGS) $(DYN_LINK_FLAGS) -o $@
 
 # Règle générique pour les fichiers .o dans src/
 $(SRCDIR)/%.o: $(SRCDIR)/%.c
@@ -47,11 +51,8 @@ $(SRCDIR)/%.o: $(SRCDIR)/%.c
 # Règle pour créer un .so à partir d'un .c
 $(POLDIR)/%.so: $(POLDIR)/%.c
 	@echo "Création de la bibliothèque partagée $@"
-	# Compiler en objet position-independent (avec -fPIC)
 	$(CC) $(CFLAGS) -c $< -o $*.o -I$(INCLDIR)
-	# Créer la bibliothèque partagée (avec -shared)
 	$(CC) -shared $*.o -o $@
-	# Nettoyer le fichier objet intermédiaire
 	rm -f $*.o
 
 dynamic_libs: $(POL_SO)
