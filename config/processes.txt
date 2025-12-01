@@ -1,0 +1,16 @@
+# Fichier de configuration des processus (Format libre) [cite: 10, 28]
+# Format attendu: Nom Arrivee Duree_Cycles Priorite
+
+# Processus A arrive a 0, dure 10 ms, priorite 1
+Proc_A 0 10 1
+
+# Processus B arrive a 2 ms, dure 5 ms, priorite 2
+Proc_B 2 5 2
+
+# Processus C arrive a 3 ms, dure 2 ms, priorite 1
+Proc_C 3 2 1
+
+# Ceci est une ligne de commentaire
+# Les lignes blanches sont ignorees.
+
+Proc_D 4 1 3
