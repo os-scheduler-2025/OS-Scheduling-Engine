@@ -51,6 +51,7 @@ int parse_processes(const char* filename, Process processes[], int* num_processe
                 processes[*num_processes].remaining_time = processes[*num_processes].burst_time;
                 processes[*num_processes].start_time = -1; 
                 processes[*num_processes].is_started = 0; 
+                processes[*num_processes].num_slices = 0;  // Nouveau: Initialisation des slices
                 processes[*num_processes].queue_level = 0; // Initialisation MLQ
                 processes[*num_processes].aging_counter = 0; // Initialisation Aging
                 (*num_processes)++;

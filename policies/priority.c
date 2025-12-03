@@ -16,14 +16,14 @@ void schedule_priority(Process processes[], int num_processes, int quantum) {
     // Trier initialement par temps d'arrivée pour gérer l'arrivée dans l'ordre
     qsort(processes, num_processes, sizeof(Process), compare_arrival_time);
 
-    printf("--- Execution Priorite Preemptive ---\n");
+    printf("--- Execution Priorite Preemptive (Priorites Croissantes: Plus Grande Valeur = Plus Haute Priorite) ---\n");
 
     // 2. Boucle principale de la simulation
     while (completed_processes < num_processes) {
         
-        // 2a. Identifier le processus 'prêt' avec la plus haute priorité
+        // 2a. Identifier le processus 'prêt' avec la plus haute priorité (plus grande valeur)
         Process *highest_priority_process = NULL;
-        int min_priority = INT_MAX;
+        int max_priority = INT_MIN;  // Chercher le maximum au lieu de minimum
         
         // Parcourir tous les processus pour trouver celui de plus haute priorité arrivé
         for (int i = 0; i < num_processes; i++) {
@@ -31,9 +31,9 @@ void schedule_priority(Process processes[], int num_processes, int quantum) {
 
             // Le processus doit être arrivé et ne doit pas être terminé
             if (p->arrival_time <= current_time && p->remaining_time > 0) {
-                // Priorité statique: la valeur la plus petite est la plus haute priorité
-                if (p->priority < min_priority) {
-                    min_priority = p->priority;
+                // Priorité statique: la valeur la plus grande est la plus haute priorité
+                if (p->priority > max_priority) {
+                    max_priority = p->priority;
                     highest_priority_process = p;
                 }
                 // Règle de départage : si priorités égales, FIFO (géré par le tri initial)
@@ -83,10 +83,10 @@ void schedule_priority(Process processes[], int num_processes, int quantum) {
             for (int i = 0; i < num_processes; i++) {
                 Process *p_next = &processes[i];
                 
-                // Si un autre processus arrive plus tard mais avec une meilleure priorité
+                // Si un autre processus arrive plus tard mais avec une meilleure priorité (plus grande)
                 if (p_next->arrival_time > current_time && 
                     p_next->arrival_time < next_event_time && 
-                    p_next->priority < current_process->priority) 
+                    p_next->priority > current_process->priority) 
                 {
                     next_event_time = p_next->arrival_time;
                 }
@@ -96,6 +96,16 @@ void schedule_priority(Process processes[], int num_processes, int quantum) {
             if (next_event_time != INT_MAX) {
                 time_slice = (next_event_time - current_time) < time_slice ? 
                              (next_event_time - current_time) : time_slice;
+            }
+
+            // NOUVEAU: Enregistrer la tranche d'exécution (slice) pour le Gantt segmenté
+            if (current_process->num_slices < MAX_SLICES) {
+                current_process->slices[current_process->num_slices].start = current_time;
+                current_process->slices[current_process->num_slices].duration = time_slice;
+                current_process->num_slices++;
+                printf("DEBUG: Slice ajoutée pour '%s' (start=%d, dur=%d, num_slices=%d)\n", current_process->name, current_time, time_slice, current_process->num_slices);  // Debug temp
+            } else {
+                fprintf(stderr, "Avertissement: Limite de slices atteinte pour '%s'.\n", current_process->name);
             }
 
             // 2d. Simulation de l'exécution

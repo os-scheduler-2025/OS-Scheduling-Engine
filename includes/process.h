@@ -5,6 +5,7 @@
 
 #define MAX_NAME_LENGTH 50
 #define MAX_PROCESSES 100 // Taille maximale du tableau de processus
+#define MAX_SLICES 50     // Nouveau: Taille maximale des tranches d'exécution par processus (pour Gantt segmenté)
 
 // Structure pour décrire un processus
 typedef struct {
@@ -23,7 +24,14 @@ typedef struct {
     // CHAMPS POUR LES POLITIQUES PRÉEMPTIVES
     int is_started; // 0 ou 1: pour savoir si start_time a été initialisé
 
-    // NOUVEAUX CHAMPS POUR MLQ et AGING
+    // NOUVEAU: Tranches d'exécution pour Gantt segmenté (amélioration pour préemption)
+    struct {
+        int start;     // Temps de début de la tranche
+        int duration;  // Durée de la tranche
+    } slices[MAX_SLICES];
+    int num_slices;  // Nombre de tranches
+
+    // CHAMPS POUR MLQ et AGING
     int queue_level;    // 1 (RR) ou 2 (FIFO)
     int aging_counter;  // Compteur de temps passé en attente
 

@@ -1,79 +1,78 @@
-# Makefile (Version CORRIGÉE pour l'ordre de liaison GTK)
+# Makefile – Version FINALE (compatible GTK3 + math.h + tout compile parfaitement)
 
 CC = gcc
-# Récupération automatique des drapeaux GTK
-GTK_CFLAGS = $(shell pkg-config --cflags gtk+-3.0)
-GTK_LIBS = $(shell pkg-config --libs gtk+-3.0)
 
-# CFLAGS inclut -fPIC, -pthread et les drapeaux GTK
+# Détection automatique des flags GTK+ 3.0
+GTK_CFLAGS = $(shell pkg-config --cflags gtk+-3.0)
+GTK_LIBS   = $(shell pkg-config --libs gtk+-3.0)
+
+# Flags de compilation
 CFLAGS = -Wall -Wextra -g -std=c99 -fPIC -pthread $(GTK_CFLAGS)
 
-# Flags de lien
-# Les librairies GTK sont incluses ici.
-LDFLAGS = $(GTK_LIBS) 
-# Librairie pour le chargement dynamique (dlopen) et multithreading (pthread)
-DYN_LINK_FLAGS = -ldl -lpthread
+# Flags de linkage
+LDFLAGS = $(GTK_LIBS)
+DYN_LINK_FLAGS = -ldl -lpthread -lm     # -lm ajouté pour sin(), cos(), M_PI/G_PI
 
 # Répertoires
-SRCDIR = src
+SRCDIR  = src
 INCLDIR = includes
-POLDIR = policies
+POLDIR  = policies
 
-# Fichiers sources à compiler (avec gui.c)
+# Fichiers sources principaux
 SRC_FILES = main.c parser.c simulation.c utils.c gui.c
-SRC = $(addprefix $(SRCDIR)/, $(SRC_FILES))
+SRC       = $(addprefix $(SRCDIR)/, $(SRC_FILES))
 
-# Fichiers politiques à transformer en .so
+# Bibliothèques dynamiques (.so)
 POL_BASE_NAMES = fifo roundrobin priority mlq
-POL_SO = $(addprefix $(POLDIR)/, $(addsuffix .so, $(POL_BASE_NAMES)))
+POL_SO         = $(addprefix $(POLDIR)/, $(addsuffix .so, $(POL_BASE_NAMES)))
 
-# Fichiers objets de la source principale
-OBJECTS = $(SRC:.c=.o)
+# Objets et exécutable
+OBJECTS    = $(SRC:.c=.o)
 EXECUTABLE = ordonnanceur
 
 .PHONY: all clean install dynamic_libs
 
+# Cible par défaut
 all: $(EXECUTABLE) $(POL_SO)
 
-# Règle pour l'exécutable final
-# L'ordre est crucial: OBJETS -> -rdynamic -> LDFLAGS (GTK_LIBS) -> DYN_LINK_FLAGS (-ldl -lpthread)
+# Liaison finale de l'exécutable (ordre très important !)
 $(EXECUTABLE): $(OBJECTS)
 	$(CC) $(CFLAGS) -rdynamic $^ $(LDFLAGS) $(DYN_LINK_FLAGS) -o $@
 
-# Règle générique pour les fichiers .o dans src/
+# Compilation des fichiers .c → .o
 $(SRCDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) -c $< -o $@ -I$(INCLDIR)
+	$(CC) $(CFLAGS) -I$(INCLDIR) -c $< -o $@
 
 # ----------------------------------------------------
-# RÈGLES POUR LES BIBLIOTHÈQUES PARTAGÉES (.so)
+# Création des bibliothèques partagées (.so)
 # ----------------------------------------------------
-
-# Règle pour créer un .so à partir d'un .c
 $(POLDIR)/%.so: $(POLDIR)/%.c
-	@echo "Création de la bibliothèque partagée $@"
-	$(CC) $(CFLAGS) -c $< -o $*.o -I$(INCLDIR)
+	@echo "Construction de la politique $@"
+	$(CC) $(CFLAGS) -I$(INCLDIR) -c $< -o $*.o
 	$(CC) -shared $*.o -o $@
 	rm -f $*.o
 
 dynamic_libs: $(POL_SO)
 
-# Nettoyage des fichiers générés
+# Nettoyage complet
 clean:
 	rm -f $(OBJECTS) $(EXECUTABLE)
-	rm -f $(POLDIR)/*.so
-	rm -f $(POLDIR)/*.o
-	
-# Règle d'installation
+	rm -f $(POLDIR)/*.so $(POLDIR)/*.o
+
+# Installation (root ou locale)
 INSTALL_DIR = /usr/local/bin
 install: $(EXECUTABLE) $(POL_SO)
-	@echo "Tentative d'installation dans $(INSTALL_DIR)..."
-	@if test -w $(INSTALL_DIR); then \
-		cp $(EXECUTABLE) $(INSTALL_DIR); \
-		cp $(POL_SO) $(INSTALL_DIR); \
-		echo "Installation reussie dans $(INSTALL_DIR) (Exécutable + .so)."; \
-	else \
-		echo "Avertissement: Vous n'avez pas les droits d'ecriture sur $(INSTALL_DIR)."; \
-		echo "Installation locale dans le repertoire courant."; \
+	@echo "Installation dans $(INSTALL_DIR)..."
+	@if [ -w $(INSTALL_DIR) ] && { \
+		cp $(EXECUTABLE) $(INSTALL_DIR)/; \
+		cp $(POL_SO) $(INSTALL_DIR)/; \
+		echo "Installation réussie dans $(INSTALL_DIR)"; \
+	} || { \
+		echo "Pas de droits sur $(INSTALL_DIR) → installation locale"; \
 		cp $(EXECUTABLE) .; \
 		cp $(POL_SO) .; \
-	fi
+		echo "Fichiers copiés dans le répertoire courant"; \
+	}
+
+# Règle pratique pour recompiler rapidement après modif d'un header
+re: clean all

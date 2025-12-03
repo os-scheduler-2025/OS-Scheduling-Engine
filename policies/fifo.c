@@ -5,10 +5,10 @@
 #include <string.h>
 
 #include "../includes/simulation.h"
-#include "../includes/utils.h" // Ajouté pour compare_arrival_time
+#include "../includes/utils.h"
 
 void schedule_fifo(Process processes[], int num_processes, int quantum) {
-    // 1. Trier les processus par temps d'arrivée (FIFO)
+    // Trier les processus par temps d'arrivée
     qsort(processes, num_processes, sizeof(Process), compare_arrival_time);
 
     int current_time = 0; 
@@ -23,13 +23,17 @@ void schedule_fifo(Process processes[], int num_processes, int quantum) {
             current_time = p->arrival_time;
         }
 
-        // Le processus est prêt, il commence immédiatement
         p->start_time = current_time;
-        
-        // Exécution complète (FIFO est non-préemptive)
+        p->is_started = 1;
+
+        // Enregistrement de la slice (FIFO = exécution complète en une seule tranche)
+        if (p->num_slices < MAX_SLICES) {
+            p->slices[p->num_slices].start = current_time;
+            p->slices[p->num_slices].duration = p->burst_time;
+            p->num_slices++;
+        }
+
         current_time += p->burst_time;
-        
-        // Le processus termine
         p->finish_time = current_time;
         p->remaining_time = 0; 
 
