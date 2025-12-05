@@ -34,6 +34,9 @@ typedef struct {
     // CHAMPS POUR MLQ et AGING
     int queue_level;    // 1 (RR) ou 2 (FIFO)
     int aging_counter;  // Compteur de temps passé en attente
+    int dynamic_priority;
+    int quantum_left;
+
 
 } Process;
 

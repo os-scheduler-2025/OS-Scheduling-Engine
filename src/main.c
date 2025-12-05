@@ -60,8 +60,19 @@ void load_policies_from_directory() {
 
         // Nom personnalisé pour MLQ
         if (strcmp(base, "mlq") == 0) {
+
+            // Nom personnalisé pour MLQ SANS aging
             strcpy(policies[num_policies].display_name, "Multilevel sans Aging");
-        } else {
+        
+        }
+        else if (strcmp(base, "mlq_aging") == 0) {
+        
+            // Nom personnalisé pour MLQ AVEC aging
+            strcpy(policies[num_policies].display_name, "Multilevel avec Aging");
+        
+        }
+        else {
+            // Nom générique pour les autres
             strcpy(policies[num_policies].display_name, base);
             if (strlen(policies[num_policies].display_name) > 0) {
                 policies[num_policies].display_name[0] = toupper(policies[num_policies].display_name[0]);
@@ -72,6 +83,7 @@ void load_policies_from_directory() {
                 }
             }
         }
+        
 
         num_policies++;
     }
