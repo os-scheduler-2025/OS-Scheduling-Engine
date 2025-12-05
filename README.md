@@ -25,11 +25,17 @@ Professeur de Systèmes d'exploitation — **Yousra Najar**
 ### 📁 Structure du Projet
 ordonnanceur/
 ├── src/ # Code source principal
+
 ├── policies/ # Implémentations des politiques d'ordonnancement
+
 ├── include/ # Fichiers d'en-tête
+
 ├── config/ # Fichiers de configuration
+
 ├── Makefile # Fichier de construction
+
 ├── Licence # Fichier de droits
+
 ├── README.md # Ce fichier
 
 
