@@ -121,12 +121,17 @@ Depuis le dossier du projet, exécutez simplement :
 make
 
 Cette commande va :
+
 ✅ Compiler tous les fichiers source
+
 📚 Compiler les politiques d'ordonnancement
+
 🏗️ Générer l'exécutable ordonnanceur
 
 Si make n'est pas installé :
+
     =>Si vous avez les droits sudo :
+    
 sudo apt install make
 
     =>Sinon, utilisez WSL ou installez manuellement 
@@ -142,9 +147,13 @@ Le fichier de configuration liste les processus à simuler.
 
 Exemple (processes.txt) :
 name arrival_time burst_time priority
+
 Proc_A 0 12 1
+
 Proc_B 1 6 3
+
 Proc_C 2 8 2
+
 Proc_D 4 3 4
 
 Caractéristiques :
@@ -162,9 +171,13 @@ Caractéristiques :
 
 
 Pour lancer le programme :
+
 ./ordonnanceur
+
 Visualiser les résultats :
+
 📊 Diagramme de Gantt dans le terminal
+
 📈 Métriques de performance calculées automatiquement 
 
 ---
@@ -173,16 +186,19 @@ Visualiser les résultats :
 
 ### 🗑️ Désinstallation:
 Aucune désinstallation particulière n'est nécessaire. Il suffit simplement de supprimer le dossier :
+
 rm -rf OS-Scheduling-Engine/ 
 
 ---
 
 
-###📄 Licence
+### 📄 Licence:
+
 Ce projet est sous licence MIT.
+
 Voir le fichier LICENSE pour plus de détails. 
 
 ---
 
 
-#⭐ N'hésitez pas à donner une étoile au projet si vous le trouvez utile ! ⭐
+# ⭐ N'hésitez pas à donner une étoile au projet si vous le trouvez utile ! ⭐
