@@ -1,4 +1,4 @@
-// policies/mlq.c
+// policies/mlq.c - Multi-Level Queue avec priorité préemptive + RR par niveau + quantum utilisateur
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,107 +8,142 @@
 #include "../includes/simulation.h"
 #include "../includes/utils.h"
 
+#define MAX_QUEUES 10          // Supporte jusqu'à 10 niveaux de priorité différents
+#define AGING_THRESHOLD 15     // Temps d'attente avant promotion (tu peux ajuster)
+
+typedef struct {
+    ProcessQueue queue;
+    int quantum;                // Quantum pour ce niveau (seulement utilisé si RR)
+} PriorityQueue;
+
 void schedule_mlq(Process processes[], int num_processes, int quantum) {
     if (quantum <= 0) quantum = 4;
 
-    ProcessQueue rr_queue;   // File 1: Round-Robin (priorité ≤2)
-    ProcessQueue fifo_queue; // File 2: FIFO (priorité >2)
-    init_queue(&rr_queue);
-    init_queue(&fifo_queue);
-    
-    const int AGING_THRESHOLD = 10; 
-    
-    int current_time = 0;
-    int completed_processes = 0;
-    
-    qsort(processes, num_processes, sizeof(Process), compare_arrival_time);
-    int next_arrival_index = 0;
+    PriorityQueue queues[MAX_QUEUES];
+    int max_priority = 0;
+    int min_priority = INT_MAX;
 
-    // Attribution initiale des files
+    // Déterminer les priorités min/max et initialiser les files
     for (int i = 0; i < num_processes; i++) {
-        processes[i].queue_level = (processes[i].priority <= 2) ? 1 : 2;
+        if (processes[i].priority > max_priority) max_priority = processes[i].priority;
+        if (processes[i].priority < min_priority) min_priority = processes[i].priority;
+        processes[i].remaining_time = processes[i].burst_time;
+        processes[i].is_started = 0;
+        processes[i].num_slices = 0;
         processes[i].aging_counter = 0;
     }
-    
-    printf("--- Execution Multi-Level Queue (Quantum RR: %d, Aging: %d) ---\n", quantum, AGING_THRESHOLD);
 
-    while (completed_processes < num_processes) {
-        
+    // Initialiser chaque file (on mappe priorité → indice de file)
+    for (int p = min_priority; p <= max_priority && p < MAX_QUEUES; p++) {
+        init_queue(&queues[p].queue);
+        queues[p].quantum = quantum;  // Tous les niveaux utilisent le même quantum
+    }
+
+    int current_time = 0;
+    int completed = 0;
+    int next_arrival_idx = 0;
+
+    printf("--- Execution Multi-Level Queue (Quantum: %d, Aging: %d) ---\n", quantum, AGING_THRESHOLD);
+
+    while (completed < num_processes) {
         // Ajouter les processus arrivés
-        while (next_arrival_index < num_processes && 
-               processes[next_arrival_index].arrival_time <= current_time) {
-            Process *p = &processes[next_arrival_index];
-            if (p->queue_level == 1) {
-                enqueue(&rr_queue, p);
-            } else {
-                enqueue(&fifo_queue, p);
-            }
-            next_arrival_index++;
+        while (next_arrival_idx < num_processes && 
+               processes[next_arrival_idx].arrival_time <= current_time) {
+            Process *p = &processes[next_arrival_idx];
+            int qidx = p->priority;
+            if (qidx >= MAX_QUEUES) qidx = MAX_QUEUES - 1;
+            enqueue(&queues[qidx].queue, p);
+            next_arrival_idx++;
         }
-        
-        // Aging : promotion après attente prolongée
+
+        // Aging : augmenter le compteur et promouvoir si nécessaire
         for (int i = 0; i < num_processes; i++) {
             Process *p = &processes[i];
-            if (p->remaining_time > 0 && p->queue_level == 2 && p->arrival_time <= current_time) {
+            if (p->remaining_time > 0 && p->arrival_time <= current_time) {
                 p->aging_counter++;
-                if (p->aging_counter >= AGING_THRESHOLD) {
-                    printf("Temps %d: AGING - '%s' promu en file RR !\n", current_time, p->name);
-                    p->queue_level = 1;
+                if (p->aging_counter >= AGING_THRESHOLD && p->priority < max_priority) {
+                    printf("Temps %d: AGING - '%s' promu de priorité %d → %d\n", 
+                           current_time, p->name, p->priority, p->priority + 1);
+                    p->priority++;
                     p->aging_counter = 0;
-                    // On le déplacera à la prochaine itération
+                    // On le déplacera à la prochaine boucle
                 }
             }
         }
 
-        Process *current_process = NULL;
+        // Trouver la file non vide avec la plus haute priorité
+        Process *current = NULL;
+        int selected_queue = -1;
         int execution_time = 0;
-        int from_rr = 0;
 
-        if (!is_empty(&rr_queue)) {
-            current_process = dequeue(&rr_queue);
-            from_rr = 1;
-            execution_time = (current_process->remaining_time < quantum) ? 
-                             current_process->remaining_time : quantum;
-        } else if (!is_empty(&fifo_queue)) {
-            current_process = dequeue(&fifo_queue);
-            from_rr = 0;
-            execution_time = current_process->remaining_time;
+        for (int p = max_priority; p >= min_priority; p--) {
+            if (p >= MAX_QUEUES) continue;
+            if (!is_empty(&queues[p].queue)) {
+                current = queues[p].queue.elements[queues[p].queue.front];
+                selected_queue = p;
+                break;
+            }
         }
 
-        if (current_process != NULL) {
-            
-            if (current_process->is_started == 0) {
-                current_process->start_time = current_time;
-                current_process->is_started = 1;
-                printf("Temps %d: '%s' démarre (Niveau: %d).\n", 
-                       current_time, current_process->name, current_process->queue_level);
-            }
-
-            // Enregistrement de la slice (indispensable pour le Gantt)
-            if (current_process->num_slices < MAX_SLICES) {
-                current_process->slices[current_process->num_slices].start = current_time;
-                current_process->slices[current_process->num_slices].duration = execution_time;
-                current_process->num_slices++;
-            }
-
-            current_time += execution_time;
-            current_process->remaining_time -= execution_time;
-
-            if (current_process->remaining_time == 0) {
-                current_process->finish_time = current_time;
-                completed_processes++;
-                printf("Temps %d: '%s' termine.\n", current_time, current_process->name);
-            } else if (from_rr) {
-                enqueue(&rr_queue, current_process);
-            } else {
-                enqueue(&fifo_queue, current_process);
-            }
-        } else {
-            if (next_arrival_index < num_processes) {
-                current_time = processes[next_arrival_index].arrival_time;
+        if (current == NULL) {
+            // CPU idle
+            if (next_arrival_idx < num_processes) {
+                current_time = processes[next_arrival_idx].arrival_time;
             } else {
                 break;
             }
+            continue;
+        }
+
+        // Déterminer le temps d'exécution pour cette tranche
+        int time_slice = queues[selected_queue].quantum;
+        if (current->remaining_time < time_slice) {
+            time_slice = current->remaining_time;
+        }
+
+        // Vérifier si un processus de priorité plus élevée arrive pendant cette tranche
+        int next_higher_arrival = INT_MAX;
+        for (int i = next_arrival_idx; i < num_processes; i++) {
+            Process *p = &processes[i];
+            if (p->arrival_time > current_time && 
+                p->arrival_time < current_time + time_slice &&
+                p->priority > current->priority) {
+                if (p->arrival_time < next_higher_arrival) {
+                    next_higher_arrival = p->arrival_time;
+                }
+            }
+        }
+
+        if (next_higher_arrival != INT_MAX) {
+            time_slice = next_higher_arrival - current_time;
+        }
+
+        // Exécution
+        if (current->is_started == 0) {
+            current->start_time = current_time;
+            current->is_started = 1;
+            printf("Temps %d: '%s' démarre (Prio: %d)\n", current_time, current->name, current->priority);
+        }
+
+        // Enregistrer la tranche pour le Gantt
+        if (current->num_slices < MAX_SLICES) {
+            current->slices[current->num_slices].start = current_time;
+            current->slices[current->num_slices].duration = time_slice;
+            current->num_slices++;
+        }
+
+        current_time += time_slice;
+        current->remaining_time -= time_slice;
+
+        // Ré-enfiler si pas terminé (seulement dans sa file actuelle)
+        if (current->remaining_time > 0) {
+            dequeue(&queues[selected_queue].queue);  // on l'enlève d'abord
+            enqueue(&queues[current->priority].queue, current);  // on le remet (priorité peut avoir changé avec aging)
+        } else {
+            dequeue(&queues[selected_queue].queue);
+            current->finish_time = current_time;
+            completed++;
+            printf("Temps %d: '%s' termine.\n", current_time, current->name);
         }
     }
 }

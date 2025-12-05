@@ -1,4 +1,4 @@
-// src/main.c - Version FINALE FULL GTK + dlopen (aucun crash, aucun warning bloquant)
+// src/main.c - Version FINALE FULL GTK + dlopen + nom personnalisé MLQ + quantum correct
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,7 +6,7 @@
 #include <dirent.h>
 #include <dlfcn.h>
 #include <gtk/gtk.h>
-#include <ctype.h>      // pour toupper()
+#include <ctype.h>      // pour toupper() et tolower()
 
 #include "../includes/process.h"
 #include "../includes/parser.h"
@@ -58,13 +58,18 @@ void load_policies_from_directory() {
         snprintf(policies[num_policies].func_name, sizeof(policies[num_policies].func_name),
                  "schedule_%s", base);
 
-        strcpy(policies[num_policies].display_name, base);
-        if (strlen(policies[num_policies].display_name) > 0) {
-            policies[num_policies].display_name[0] = toupper(policies[num_policies].display_name[0]);
-        }
-        for (size_t i = 0; i < strlen(policies[num_policies].display_name); i++) {
-            if (policies[num_policies].display_name[i] == '_') {
-                policies[num_policies].display_name[i] = ' ';
+        // Nom personnalisé pour MLQ
+        if (strcmp(base, "mlq") == 0) {
+            strcpy(policies[num_policies].display_name, "Multilevel sans Aging");
+        } else {
+            strcpy(policies[num_policies].display_name, base);
+            if (strlen(policies[num_policies].display_name) > 0) {
+                policies[num_policies].display_name[0] = toupper(policies[num_policies].display_name[0]);
+            }
+            for (size_t i = 0; i < strlen(policies[num_policies].display_name); i++) {
+                if (policies[num_policies].display_name[i] == '_') {
+                    policies[num_policies].display_name[i] = ' ';
+                }
             }
         }
 
@@ -95,15 +100,17 @@ static void on_policy_changed(GtkComboBox *combo, gpointer user_data) {
 
     const char *name = policies[active].display_name;
 
-    // Recherche insensible à la casse et aux espaces/underscores
+    // Conversion en minuscules pour comparaison insensible à la casse
     char lower_name[64];
     strcpy(lower_name, name);
     for (int i = 0; lower_name[i]; i++) {
-        lower_name[i] = tolower(lower_name[i]);
+        lower_name[i] = tolower((unsigned char)lower_name[i]);
     }
 
-    gboolean sensitive = (strstr(lower_name, "round") != NULL || strstr(lower_name, "robin") != NULL || 
-                          strstr(lower_name, "mlq") != NULL);
+    // Active le quantum pour Round-Robin et Multilevel sans Aging (MLQ)
+    gboolean sensitive = (strstr(lower_name, "round") != NULL || 
+                          strstr(lower_name, "robin") != NULL || 
+                          strstr(lower_name, "multilevel") != NULL);
 
     gtk_widget_set_sensitive(quantum_entry, sensitive);
 }
@@ -196,7 +203,7 @@ int main(int argc, char *argv[]) {
 
     GtkWidget *qbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     gtk_box_pack_start(GTK_BOX(box), qbox, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(qbox), gtk_label_new("Quantum (Round-Robin & MLQ) :"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(qbox), gtk_label_new("Quantum (Round-Robin & Multilevel sans Aging) :"), FALSE, FALSE, 0);
     quantum_entry = gtk_entry_new();
     gtk_entry_set_text(GTK_ENTRY(quantum_entry), "4");
     gtk_widget_set_sensitive(quantum_entry, FALSE);
