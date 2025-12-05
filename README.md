@@ -130,14 +130,11 @@ Cette commande va :
 
 Si make n'est pas installé :
 
-    =>Si vous avez les droits sudo :
+    - Si vous avez les droits sudo :sudo apt install make
     
-sudo apt install make
-
-    =>Sinon, utilisez WSL ou installez manuellement 
+    - Sinon, utilisez WSL ou installez manuellement 
 
 ---
-
 
     
 ### 📝 Format du Fichier de Configuration:
@@ -201,4 +198,4 @@ Voir le fichier LICENSE pour plus de détails.
 ---
 
 
-# ⭐ N'hésitez pas à donner une étoile au projet si vous le trouvez utile ! ⭐
+# ⭐ N'hésitez pas à donner une étoile au projet si vous le trouvez utile ,cela nous motive énormément! ⭐
