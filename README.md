@@ -100,7 +100,10 @@ cd OS-Scheduling-Engine
 
 *Extrayez le dossier dans votre espace utilisateur
 
-Aucune installation système n'est requise. ✅
+Aucune installation système n'est requise. ✅ 
+
+---
+
 
 
 ### 🔧 Compilation du Projet:
@@ -119,7 +122,10 @@ Si make n'est pas installé :
     =>Si vous avez les droits sudo :
 sudo apt install make
 
-    =>Sinon, utilisez WSL ou installez manuellement
+    =>Sinon, utilisez WSL ou installez manuellement 
+
+---
+
 
     
 ### 📝 Format du Fichier de Configuration:
@@ -140,7 +146,10 @@ Caractéristiques :
 
 📄 Les lignes vides sont ignorées
 
-🔢 Le nombre de processus est libre
+🔢 Le nombre de processus est libre 
+
+---
+
 
 ### 🚀 Exécution du Simulateur:
 
@@ -149,15 +158,24 @@ Pour lancer le programme :
 ./ordonnanceur
 Visualiser les résultats :
 📊 Diagramme de Gantt dans le terminal
-📈 Métriques de performance calculées automatiquement
+📈 Métriques de performance calculées automatiquement 
+
+---
+
 
 
 ### 🗑️ Désinstallation:
 Aucune désinstallation particulière n'est nécessaire. Il suffit simplement de supprimer le dossier :
-rm -rf OS-Scheduling-Engine/
+rm -rf OS-Scheduling-Engine/ 
+
+---
+
 
 ###📄 Licence
 Ce projet est sous licence MIT.
-Voir le fichier LICENSE pour plus de détails.
+Voir le fichier LICENSE pour plus de détails. 
+
+---
+
 
 #⭐ N'hésitez pas à donner une étoile au projet si vous le trouvez utile ! ⭐
