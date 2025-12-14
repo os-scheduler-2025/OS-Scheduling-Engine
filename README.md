@@ -191,7 +191,8 @@ rm -rf OS-Scheduling-Engine/
 
 ### 📄 Licence:
 
-Ce projet est sous licence GNU General Public License v3.0.
+Ce projet est sous licence **MIT**.  
+Vous êtes libre d'utiliser, modifier et distribuer ce logiciel.
 
 Voir le fichier LICENSE pour plus de détails. 
 
@@ -199,4 +200,5 @@ Voir le fichier LICENSE pour plus de détails.
 
 
 # ⭐ N'hésitez pas à donner une étoile au projet si vous le trouvez utile ,cela nous motive énormément! ⭐
+
 
